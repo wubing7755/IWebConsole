@@ -1,3 +1,6 @@
+using Server.Database;
+using Server.Service;
+
 namespace Server
 {
     public class Program
@@ -8,6 +11,15 @@ namespace Server
 
             // Add services to the container.
             builder.Services.AddRazorPages();
+
+            // configure service
+            builder.Services.ConfigureServices();
+
+            using(var client = new DatabaseContext())
+            {
+                client.Database.EnsureCreated();
+            }
+
 
             var app = builder.Build();
 
@@ -29,6 +41,16 @@ namespace Server
             app.MapRazorPages();
 
             app.Run();
+        }
+    }
+
+    public static class ServiceConfigurationExtensions
+    {
+        public static void ConfigureServices(this IServiceCollection services)
+        {
+            services.AddEntityFrameworkSqlite().AddDbContext<DatabaseContext>();
+
+            services.AddScoped<DbContextService>();
         }
     }
 }
