@@ -1,5 +1,5 @@
-using Server.Database;
-using Server.Service;
+using Microsoft.EntityFrameworkCore;
+using Model.Data;
 
 namespace Server
 {
@@ -10,47 +10,38 @@ namespace Server
             var builder = WebApplication.CreateBuilder(args);
 
             // Add services to the container.
-            builder.Services.AddRazorPages();
+            builder.Services.AddAuthorization();
 
-            // configure service
-            builder.Services.ConfigureServices();
+            var configuration = builder.Configuration;
 
-            using(var client = new DatabaseContext())
+            // register DatabaseContext
+            builder.Services.AddDbContext<DatabaseContext>(options =>
             {
-                client.Database.EnsureCreated();
-            }
+                var connectionString = configuration.GetConnectionString("IWebDatabase");
+                options.UseSqlite(connectionString);
+            });
 
+            builder.Services.AddScoped<InitialDbService>();
 
             var app = builder.Build();
 
-            // Configure the HTTP request pipeline.
-            if (!app.Environment.IsDevelopment())
+            // create database
+            using (var scope = app.Services.CreateScope())
             {
-                app.UseExceptionHandler("/Error");
-                // The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.
-                app.UseHsts();
+                var dbContext = scope.ServiceProvider.GetRequiredService<DatabaseContext>();
+                dbContext.Database.EnsureCreated();
+
+                var initialDb = scope.ServiceProvider.GetRequiredService<InitialDbService>();
+                initialDb.Initial();
             }
 
-            app.UseHttpsRedirection();
-            app.UseStaticFiles();
+            // Configure the HTTP request pipeline.
 
-            app.UseRouting();
+            app.UseHttpsRedirection();
 
             app.UseAuthorization();
 
-            app.MapRazorPages();
-
             app.Run();
-        }
-    }
-
-    public static class ServiceConfigurationExtensions
-    {
-        public static void ConfigureServices(this IServiceCollection services)
-        {
-            services.AddEntityFrameworkSqlite().AddDbContext<DatabaseContext>();
-
-            services.AddScoped<DbContextService>();
         }
     }
 }
