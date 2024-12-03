@@ -10,10 +10,19 @@ namespace Model
     public class Player
     {
         [Key]
-        public int Id { get; set; }
+        public int Id;
 
-        public string Name { get; set; }
+        public string Name;
 
-        public Rank PlayerType { get; set; }
+        public string Description;
+
+        public Grade Grade;
+    }
+
+    public enum Grade
+    {
+        Primary,
+        Senior,
+        High
     }
 }
