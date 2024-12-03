@@ -1,3 +1,4 @@
+using Microsoft.EntityFrameworkCore;
 using Server.Database;
 using Server.Service;
 
@@ -11,15 +12,10 @@ namespace Server
 
             // Add services to the container.
             builder.Services.AddRazorPages();
+            builder.Services.AddControllers();
 
-            // configure service
-            builder.Services.ConfigureServices();
-
-            using(var client = new DatabaseContext())
-            {
-                client.Database.EnsureCreated();
-            }
-
+            // Configure service
+            builder.Services.ConfigureServices(builder.Configuration);
 
             var app = builder.Build();
 
@@ -35,10 +31,17 @@ namespace Server
             app.UseStaticFiles();
 
             app.UseRouting();
-
             app.UseAuthorization();
 
+            app.MapControllers(); // Simplified controller route mapping
             app.MapRazorPages();
+
+            // Apply database migrations
+            using (var scope = app.Services.CreateScope())
+            {
+                var dbContext = scope.ServiceProvider.GetRequiredService<DatabaseContext>();
+                dbContext.Database.Migrate(); // Apply all pending migrations
+            }
 
             app.Run();
         }
@@ -46,8 +49,11 @@ namespace Server
 
     public static class ServiceConfigurationExtensions
     {
-        public static void ConfigureServices(this IServiceCollection services)
+        public static void ConfigureServices(this IServiceCollection services, IConfiguration configuration)
         {
+            //services.AddDbContext<DatabaseContext>(options =>
+            //    options.UseSqlite(configuration.GetConnectionString("DefaultConnection")));
+
             services.AddEntityFrameworkSqlite().AddDbContext<DatabaseContext>();
 
             services.AddScoped<DbContextService>();
